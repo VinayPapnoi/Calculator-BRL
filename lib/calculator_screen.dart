@@ -1,4 +1,3 @@
-import 'package:calculator/button_values.dart';
 import 'package:flutter/material.dart';
 
 class CalculatorScreen extends StatefulWidget {
@@ -9,223 +8,103 @@ class CalculatorScreen extends StatefulWidget {
 }
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
-  String number1 = ""; // . 0-9
-  String operand = ""; // + - * /
-  String number2 = ""; // . 0-9
+  String display = '';   // screen pe ye dikhta hai
+  String num1 = '';      // first number
+  String num2 = '';      // second number
+  String operator = '';  
+
+ // button dabane pe
+  void onBtnTap(String value) {
+    if (value == 'C') {
+      display = '';
+      num1 = '';     // basically sab uda dega ye
+      num2 = '';
+      operator = '';
+    } else if (value == 'DEL') {
+      // delete last input
+      if (num2.isNotEmpty) {
+        num2 = num2.substring(0, num2.length - 1);
+        display = num2;
+      } else if (operator.isNotEmpty) {
+        operator = '';
+      } else if (num1.isNotEmpty) {
+        num1 = num1.substring(0, num1.length - 1);
+        display = num1;
+      }
+    } else if ('+-x/'.contains(value)) {
+      // set operator
+      operator = value;
+    } else if (value == '=') {
+      double n1 = double.tryParse(num1) ?? 0;
+      double n2 = double.tryParse(num2) ?? 0;
+      double result = 0;
+
+      if (operator == '+') result = n1 + n2;
+      if (operator == '-') result = n1 - n2;
+      if (operator == 'x') result = n1 * n2;
+      if (operator == '/') {
+        if (n2 == 0) {
+          display = 'Cannot divide by zero';
+          num1 = '';
+          num2 = '';
+          operator = '';
+          setState(() {});
+          return;
+        }
+        result = n1 / n2;
+      }
+
+      display = result.toString();
+      num1 = display;
+      num2 = '';
+      operator = '';
+    } else {
+      // numbers
+      if (operator.isEmpty) {
+        num1 += value;
+        display = num1;
+      } else {
+        num2 += value;
+        display = num2;
+      }
+    }
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
+    final buttons = [
+      '1','2','3','4','5','6','7','8','9','0',
+      '+','-','x','/','=','C','DEL'
+    ];
+
     return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            // output
-            Expanded(
-              child: SingleChildScrollView(
-                reverse: true,
-                child: Container(
-                  alignment: Alignment.bottomRight,
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    "$number1$operand$number2".isEmpty
-                        ? "0"
-                        : "$number1$operand$number2",
-                    style: const TextStyle(
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.end,
-                  ),
-                ),
+      body: Column(
+        children: [
+          Expanded(
+            child: Container(
+              alignment: Alignment.bottomRight,
+              padding: EdgeInsets.all(20),
+              child: Text(
+                display.isEmpty ? '0' : display,
+                style: TextStyle(fontSize: 100),
               ),
             ),
-
-            // buttons
-            Wrap(
-              children: Btn.buttonValues
-                  .map(
-                    (value) => SizedBox(
-                      width: value == Btn.n0
-                          ? screenSize.width / 2
-                          : (screenSize.width / 4),
-                      height: screenSize.width / 5,
-                      child: buildButton(value),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget buildButton(value) {
-    return Padding(
-      padding: const EdgeInsets.all(4.0),
-      child: Material(
-        color: getBtnColor(value),
-        clipBehavior: Clip.hardEdge,
-        shape: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.white24),
-          borderRadius: BorderRadius.circular(100),
-        ),
-        child: InkWell(
-          onTap: () => onBtnTap(value),
-          child: Center(
-            child: Text(
-              value,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+          ),
+          Expanded(
+            flex: 2,
+            child: GridView.count(
+              crossAxisCount: 4,
+              children: buttons.map((btn) {
+                return ElevatedButton(
+                  onPressed: () => onBtnTap(btn),
+                  child: Text(btn, style: TextStyle(fontSize: 20)),
+                );
+              }).toList(),
             ),
           ),
-        ),
+        ],
       ),
     );
-  }
-
-  void onBtnTap(String value) {
-    if (value == Btn.del) {
-      delete();
-      return;
-    }
-
-    if (value == Btn.clr) {
-      clearAll();
-      return;
-    }
-
-    if (value == Btn.per) {
-      convertToPercentage();
-      return;
-    }
-
-    if (value == Btn.calculate) {
-      calculate();
-      return;
-    }
-
-    appendValue(value);
-  }
-
-  void calculate() {
-    if (number1.isEmpty) return;
-    if (operand.isEmpty) return;
-    if (number2.isEmpty) return;
-
-    final double num1 = double.parse(number1);
-    final double num2 = double.parse(number2);
-
-    double result = 0.0;
-
-    switch (operand) {
-      case Btn.add:
-        result = num1 + num2;
-        break;
-      case Btn.subtract:
-        result = num1 - num2;
-        break;
-      case Btn.multiply:
-        result = num1 * num2;
-        break;
-      case Btn.divide:
-        if (num2 == 0) {
-          setState(() {
-            number1 = "Division by zero is not possible";
-            operand = "";
-            number2 = "";
-          });
-          return;
-        }
-        result = num1 / num2;
-        break;
-      default:
-    }
-
-    setState(() {
-      number1 = result.toString();
-      if (number1.endsWith(".0")) {
-        number1 = number1.substring(0, number1.length - 2);
-      }
-
-      operand = "";
-      number2 = "";
-    });
-  }
-
-  void convertToPercentage() {
-    if (number1.isNotEmpty && operand.isNotEmpty && number2.isNotEmpty) {
-      calculate();
-    }
-
-    if (operand.isNotEmpty) {
-      return;
-    }
-
-    final number = double.parse(number1);
-    setState(() {
-      number1 = "${(number / 100)}";
-      operand = "";
-      number2 = "";
-    });
-  }
-
-  void clearAll() {
-    setState(() {
-      number1 = "";
-      operand = "";
-      number2 = "";
-    });
-  }
-
-  void delete() {
-    if (number2.isNotEmpty) {
-      number2 = number2.substring(0, number2.length - 1);
-    } else if (operand.isNotEmpty) {
-      operand = "";
-    } else if (number1.isNotEmpty) {
-      number1 = number1.substring(0, number1.length - 1);
-    }
-
-    setState(() {});
-  }
-
-  void appendValue(String value) {
-    if (value != Btn.dot && int.tryParse(value) == null) {
-      if (operand.isNotEmpty && number2.isNotEmpty) {
-        calculate();
-      }
-      operand = value;
-    } else if (number1.isEmpty || operand.isEmpty) {
-      if (value == Btn.dot && number1.contains(Btn.dot)) return;
-      if (value == Btn.dot && (number1.isEmpty || number1 == Btn.n0)) {
-        value = "0.";
-      }
-      number1 += value;
-    } else if (number2.isEmpty || operand.isNotEmpty) {
-      if (value == Btn.dot && number2.contains(Btn.dot)) return;
-      if (value == Btn.dot && (number2.isEmpty || number2 == Btn.n0)) {
-        value = "0.";
-      }
-      number2 += value;
-    }
-
-    setState(() {});
-  }
-
-  Color getBtnColor(value) {
-    return [Btn.del, Btn.clr].contains(value)
-        ? Colors.blueGrey
-        : [
-            Btn.per,
-            Btn.multiply,
-            Btn.add,
-            Btn.subtract,
-            Btn.divide,
-            Btn.calculate,
-          ].contains(value)
-        ? Colors.orange
-        : Colors.black87;
   }
 }
